@@ -1,0 +1,50 @@
+# =============================================================================
+# DEFAULT IMAGE
+# =============================================================================
+
+image:
+  name: hashicorp/terraform:light
+  entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+  
+# =============================================================================
+# DEFAULT BEFORE SCRIPT
+# =============================================================================
+
+before_script:
+  - rm -rf .terraform && terraform --version && terraform init
+
+# =============================================================================
+# STAGES
+# =============================================================================
+
+stages: [ "validate", "plan", "apply" ]
+
+# =============================================================================
+# JOBS
+# =============================================================================
+
+validate:
+  stage: validate
+  script:
+    - terraform validate
+
+plan:
+  stage: plan
+  script:
+    - terraform plan -out=planfile -var 'container_name=ghost_blog1' -var 'image_name=ghost:alpine' -var 'ext_port=8080'
+  dependencies:
+    - validate
+  artifacts:
+    paths:
+      - planfile
+
+apply:
+  stage: apply
+  script:
+    - terraform apply -input=false "planfile"
+  dependencies:
+    - plan
+  when: manual
+  
